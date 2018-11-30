@@ -26,6 +26,7 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.*;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.serialization.record.Record;
@@ -39,6 +40,8 @@ import java.util.*;
 @Tags({"record,fields,checker"})
 @CapabilityDescription("Checks whether the specified fields exists or not in the incoming record depending on property value. Sends the FlowFile to the Valid relationship if all the rules are matched, otherwise it's sent to the Invalid relationship.")
 public class RecordFieldCheckerProcessor extends RecordFieldCheckerAbstractProcessor {
+
+
 
     @Override
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
@@ -58,7 +61,10 @@ public class RecordFieldCheckerProcessor extends RecordFieldCheckerAbstractProce
         for(PropertyDescriptor prop: processContext.getProperties().keySet()) {
             if (prop.isDynamic()) {
                 boolean validator = processContext.getProperty(prop).asBoolean();
-                out = out && (validator == containsField(prop.getName(), record));
+                logger.debug("Evaluating property " + prop.getName() + ((validator) ? ". It should" : ". It shouldn't") + " be in the record");
+                boolean containsField = containsField(prop.getName(), record);
+                out = out && (validator == containsField);
+                logger.debug("Property " + prop.getName() + ((containsField) ? " is " : " isn't ") + "in the record.");
             }
         }
         return out;
@@ -68,7 +74,9 @@ public class RecordFieldCheckerProcessor extends RecordFieldCheckerAbstractProce
         boolean out = false;
         List<RecordField> fields = record.getSchema().getFields();
         for (RecordField field: fields) {
-            out = out || fieldName.equals(field.getFieldName());
+            if (record.getAsString(field.getFieldName()) != null) {
+                out = out || fieldName.equals(field.getFieldName());
+            }
         }
         return out;
     }

@@ -3,6 +3,7 @@ package es.ubika.nifi.processors.utils;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.*;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
@@ -17,6 +18,8 @@ import java.io.InputStream;
 import java.util.*;
 
 public abstract class RecordFieldCheckerAbstractProcessor extends AbstractProcessor {
+
+  protected ComponentLog logger;
 
   static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
           .name("record-reader")
@@ -62,6 +65,7 @@ public abstract class RecordFieldCheckerAbstractProcessor extends AbstractProces
     relationships.add(VALID);
     relationships.add(INVALID);
     relationships.add(REL_FAILURE);
+    logger = getLogger();
     this.relationships = Collections.unmodifiableSet(relationships);
   }
 
@@ -122,8 +126,10 @@ public abstract class RecordFieldCheckerAbstractProcessor extends AbstractProces
     }
 
     if(isValid) {
+      logger.debug("Transfering FlowFile to the Valid relationship.");
       session.transfer(flowFile, VALID);
     } else {
+      logger.debug("Transfering FlowFile to the Invalid relationship.");
       session.transfer(flowFile, INVALID);
     }
   }
